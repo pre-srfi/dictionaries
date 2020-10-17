@@ -46,7 +46,7 @@
       ((null? objs) 
        dictionary)
       ((null? (cdr objs))
-       (error "mismatch of key / values argument list"))
+       (error "mismatch of key / values argument list" objs))
       (else (let*-values
               (((key) (car objs))
                ((value) (cadr objs))
@@ -58,13 +58,13 @@
               (loop (cddr objs)
                     new-d))))))
 
-(define (idict-set! vec dictionary . objs)
+(define (idict-set! vec dictionary objs)
   (idict-set!* vec dictionary #f objs))
 
-(define (idict-adjoin! vec dictionary . objs)
+(define (idict-adjoin! vec dictionary objs)
   (idict-set!* vec dictionary #t objs))
 
-(define (idict-delete! vec dictionary . keys)
+(define (idict-delete! vec dictionary keys)
   (dcall ddelete-all! vec dictionary keys))
 
 (define (idict-delete-all! vec dictionary keylist)
@@ -122,7 +122,7 @@
         (dcall dfor-each vec
                (lambda (key value)
                  (define new-dict
-                   (dcall ddelete! vec dictionary key))
+                   (dcall ddelete! vec dictionary (list key)))
                  (cont new-dict key value)) 
                dictionary))))
   (define empty? (dcall dempty? vec dictionary))
@@ -210,13 +210,13 @@
   acc)
 
 (define (idict-map->list vec proc dictionary)
-  (call-with-values
-    (lambda ()
-      (dcall dentries vec dictionary))
-    (lambda (keys vals)
-      (map proc
-           keys
-           vals))))
+  (define reverse-lst
+    (dcall dfold vec
+         (lambda (key value lst)
+           (cons (proc key value) lst)) 
+         '()
+         dictionary))
+  (reverse reverse-lst))
 
 (define (idict->alist vec dictionary)
   (dcall dmap->list vec
