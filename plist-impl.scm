@@ -75,7 +75,7 @@
       (else (handle-failure))))
 
   (define (plist-size  plist)
-    (length plist))
+    (/ (length plist) 2))
 
   (define (plist-foreach  proc plist)
     (let loop ((pl plist))

@@ -198,8 +198,15 @@
          dictionary)))
 
 (define (idict-entries vec dictionary)
-  (values (dcall dkeys vec dictionary)
-          (dcall dvalues vec dictionary)))
+  (define pair 
+    (dcall dfold vec
+           (lambda (key value acc)
+             (cons (cons key (car acc))
+                   (cons value (cdr acc))))
+           (cons '() '())
+           dictionary))
+  (values (reverse (car pair)) 
+          (reverse (cdr pair))))
 
 (define (idict-fold vec proc knil dictionary)
   (define acc knil)
