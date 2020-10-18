@@ -1,7 +1,4 @@
-(define registry
-  (list
-    (make-alist-impl)
-    (make-plist-impl)))
+(define registry '())
 
 (define (lookup dictionary fail-on-notfound?)
   (let loop ((r registry))
@@ -28,7 +25,7 @@
   (do ((lst lst (cddr lst)))
       ((null? lst))
       (when (null? (cdr lst))
-        (error "Uneven amount of arguments"))
+        (error "Uneven amount of arguments" lst))
       (let ((proc-name (car lst))
             (proc (cadr lst)))
         (define index

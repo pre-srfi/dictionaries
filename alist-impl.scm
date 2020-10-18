@@ -1,9 +1,9 @@
-(define (make-alist-impl)
+(define (register-alist!)
   
-  (define (alist? vec l)
+  (define (alist? l)
     (and (list? l) (every pair? l)))
 
-  (define (alist-map! vec proc alist)
+  (define (alist-map! proc alist)
     (map 
       (lambda (e)
         (define key (car e))
@@ -11,13 +11,13 @@
         (cons key (proc key value))) 
       alist))
 
-  (define (alist-filter! vec pred alist)
+  (define (alist-filter! pred alist)
     (filter
       (lambda (e)
         (pred (car e) (cdr e))) 
       alist))
 
-  (define (alist-search! vec alist key failure success)
+  (define (alist-search! alist key failure success)
     (define (handle-success pair)
       (define old-key (car pair))
       (define old-value (cdr pair))
@@ -49,29 +49,26 @@
       ((assoc key alist) => handle-success)
       (else (handle-failure))))
 
-  (define (alist-size vec alist)
+  (define (alist-size alist)
     (define keys (map car alist))
     (define (fold-proc el set)
       (lset-adjoin equal? set el))
     (define key-set (fold fold-proc '() keys))
     (length key-set))
 
-  (define (alist-foreach vec proc alist)
+  (define (alist-foreach proc alist)
     (define (proc* e)
       (proc (car e) (cdr e)))
     (for-each proc* alist))
   
-  (define (alist->alist vec alist)
+  (define (alist->alist alist)
     alist)
 
-
-  (define vec (vector-copy model-vec))
-  (vector-set! vec d? alist?)
-  (vector-set! vec dmap! alist-map!)
-  (vector-set! vec dfilter! alist-filter!)
-  (vector-set! vec dsearch! alist-search!)
-  (vector-set! vec dsize alist-size)
-  (vector-set! vec dfor-each alist-foreach)
-  (vector-set! vec d->alist alist->alist)
-
-  vec)
+  (register-dictionary! 
+    'dictionary? alist?
+    'dict-map! alist-map!
+    'dict-filter! alist-filter!
+    'dict-search! alist-search!
+    'dict-size alist-size
+    'dict-for-each alist-foreach
+    'dict->alist alist->alist))

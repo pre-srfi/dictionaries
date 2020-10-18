@@ -1,7 +1,27 @@
 (import (scheme base)
         (srfi 1)
-        (srfi 64)
         (dictionaries))
+
+(cond-expand
+  ((or srfi-64 kawa) 
+    (import (srfi 64)))
+  (chibi 
+    (begin
+      (import (except (chibi test) test-equal))
+      (define-syntax test-equal
+        (syntax-rules ()
+          ((_ args ...) (test args ...))))
+      ))
+  (else (error "No testing framework")))
+
+(cond-expand
+  ((or srfi-125 chibi)
+   (import (srfi 125)))
+  (kawa
+    (import (srfi 69 basic-hash-tables)))
+  (srfi-69
+    (import (srfi 69)))
+  (else))
 
 (define (do-test alist->dict)
 
@@ -123,9 +143,15 @@
     (define-values
       (new-dict key value)
       (dict-pop! (alist->dict '((a . b) (c . d))) error))
-    (test-equal (dict->alist new-dict) '((c . d)))
-    (test-equal key 'a)
-    (test-equal value 'b))
+    (test-assert
+      (or 
+        (and (equal? (dict->alist new-dict) '((c . d)))
+             (equal? key 'a)
+             (equal? value 'b))
+        
+        (and (equal? (dict->alist new-dict) '((a . b)))
+             (equal? key 'c)
+             (equal? value 'd)))))
 
   (test-group
     "dict-map!"
@@ -216,7 +242,9 @@
            (lambda (key value)
              (set! lst (append lst (list key value))))
            (alist->dict '((a . b) (c . d))))
-    (test-equal '(a b c d) lst))
+    (test-assert
+      (or (equal? '(a b c d) lst)
+          (equal? '(c d a b) lst))))
 
   (test-group
     "dict-count"
@@ -275,21 +303,28 @@
     "dict-keys"
     (define keys
       (dict-keys (alist->dict '((a . b) (c . d)))))
-    (test-equal '(a c) keys))
+    (test-assert
+      (or (equal? '(a c) keys)
+          (equal? '(c a) keys))))
 
   (test-group
     "dict-values"
     (define vals
       (dict-values (alist->dict '((a . b) (c . d)))))
-    (test-equal '(b d) vals))
+    (test-assert
+      (or (equal? '(b d) vals)
+          (equal? '(d b) vals))))
 
   (test-group
     "dict-entries"
     (define-values
       (keys vals)
       (dict-entries (alist->dict '((a . b) (c . d)))))
-    (test-equal '(a c) keys)
-    (test-equal '(b d) vals))
+    (test-assert
+      (or (and (equal? '(a c) keys)
+               (equal? '(b d) vals))
+          (and (equal? '(c a) keys)
+               (equal? '(d b) vals)))))
 
   (test-group
     "dict-fold"
@@ -299,7 +334,9 @@
                (append acc (list key value)))
              '()
              (alist->dict '((a . b) (c . d)))))
-    (test-equal value '(a b c d)))
+    (test-assert
+      (or (equal? '(a b c d) value)
+          (equal? '(c d a b) value))))
 
   (test-group
     "dict-map->list"
@@ -309,13 +346,17 @@
                (string-append (symbol->string key)
                               value))
              (alist->dict '((a . "b") (c . "d")))))
-    (test-equal '("ab" "cd") lst))
+    (test-assert
+      (or (equal? '("ab" "cd") lst)
+          (equal? '("cd" "ab") lst))))
 
   (test-group
     "dict->alist"
     (define alist
       (dict->alist  (alist->dict '((a . b) (c . d)))))
-    (test-equal alist '((a . b) (c . d)))))
+    (test-assert
+      (or (equal? '((a . b) (c . d)) alist)
+          (equal? '((c . d) (a . b)) alist)))))
 
 (test-begin "Dictionaries")
 
@@ -331,5 +372,19 @@
              (map (lambda (pair) 
                     (list (car pair) (cdr pair))) 
                   alist)))))
+
+(cond-expand
+  ((or srfi-69 srfi-125 chibi kawa)
+   (begin
+     (test-group
+       "srfi-69"
+       (do-test (lambda (alist) 
+                  (define table (make-hash-table equal?))
+                  (for-each
+                    (lambda (pair)
+                      (hash-table-set! table (car pair) (cdr pair)))
+                    alist)
+                  table)))))
+  (else))
 
 (test-end)

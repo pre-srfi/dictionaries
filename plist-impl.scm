@@ -1,11 +1,11 @@
-(define (make-plist-impl)
+(define (register-plist!)
   
-  (define (plist? vec l)
+  (define (plist?  l)
     (and (list? l)
          (not (null? l))
          (symbol? (car l))))
 
-  (define (plist-map! vec proc plist)
+  (define (plist-map!  proc plist)
     (let loop ((pl plist))
      (cond
        ((null? pl) plist)
@@ -18,7 +18,7 @@
                      (proc key value))
            (loop rest))))))
 
-  (define (plist-filter! vec pred plist)
+  (define (plist-filter!  pred plist)
     (define head (cons #f plist))
     (let loop ((pl plist)
                (parent-cell head))
@@ -49,7 +49,7 @@
       ((equal? key (car plist)) head)
       (else (find-plist-entry key (cdr plist)))))
   
-  (define (plist-search! vec plist key failure success)
+  (define (plist-search!  plist key failure success)
     (define plist-head (cons #t plist))
     (define (handle-success head)
       (define key-cell (cdr head))
@@ -74,7 +74,7 @@
       ((find-plist-entry key plist-head) => handle-success)
       (else (handle-failure))))
 
-  (define (plist-size vec plist)
+  (define (plist-size  plist)
     (define keys
       (let loop ((pl plist)
                  (keys '()))
@@ -87,19 +87,17 @@
     (define key-set (fold fold-proc '() keys))
     (length key-set))
 
-  (define (plist-foreach vec proc plist)
+  (define (plist-foreach  proc plist)
     (let loop ((pl plist))
      (if (null? pl) #t
          (begin
            (proc (car pl) (cadr pl))
            (loop (cddr pl))))))
-
-  (define vec (vector-copy model-vec))
-  (vector-set! vec d? plist?)
-  (vector-set! vec dmap! plist-map!)
-  (vector-set! vec dfilter! plist-filter!)
-  (vector-set! vec dsearch! plist-search!)
-  (vector-set! vec dsize plist-size)
-  (vector-set! vec dfor-each plist-foreach)
-
-  vec)
+  
+  (register-dictionary! 
+    'dictionary? plist?
+    'dict-map! plist-map!
+    'dict-filter! plist-filter!
+    'dict-search! plist-search!
+    'dict-size plist-size
+    'dict-for-each plist-foreach))

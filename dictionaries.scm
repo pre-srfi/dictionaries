@@ -3,6 +3,13 @@
   (import (scheme base)
           (scheme case-lambda)
           (srfi 1))
+  
+  (cond-expand
+    ((and srfi-69 (not srfi-125)) (import (srfi 69)))
+    (srfi-125 (import (srfi 125)))
+    (chibi (import (srfi 125)))
+    (kawa (import (srfi 69 basic-hash-tables))))
+  
   (export 
     
     ;; predicates
