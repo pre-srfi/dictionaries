@@ -1,7 +1,9 @@
 (define (register-alist!)
   
   (define (alist? l)
-    (and (list? l) (every pair? l)))
+    (and (list? l)
+         (or (null? l)
+             (pair? (car l)))))
 
   (define (alist-map! proc alist)
     (map 
@@ -50,11 +52,7 @@
       (else (handle-failure))))
 
   (define (alist-size alist)
-    (define keys (map car alist))
-    (define (fold-proc el set)
-      (lset-adjoin equal? set el))
-    (define key-set (fold fold-proc '() keys))
-    (length key-set))
+    (length alist))
 
   (define (alist-foreach proc alist)
     (define (proc* e)

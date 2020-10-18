@@ -75,17 +75,7 @@
       (else (handle-failure))))
 
   (define (plist-size  plist)
-    (define keys
-      (let loop ((pl plist)
-                 (keys '()))
-        (if (null? pl)
-            keys
-            (loop (cddr pl)
-                  (cons (car pl) keys)))))
-    (define (fold-proc el set)
-      (lset-adjoin equal? set el))
-    (define key-set (fold fold-proc '() keys))
-    (length key-set))
+    (length plist))
 
   (define (plist-foreach  proc plist)
     (let loop ((pl plist))
