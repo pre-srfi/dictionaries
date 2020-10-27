@@ -30,7 +30,7 @@
       keys)
     table)
   
-  (define (hash-table-map* proc table)
+  (define (hash-table-map!* proc table)
     (hash-table-map! proc table)
     table)
   
@@ -71,20 +71,20 @@
     'dictionary? hash-table?
     'dict-empty? hash-table-empty?
     'dict-contains? hash-table-contains?
-    'dict-ref hash-table-ref*
+    'dict-ref hash-table-ref
     'dict-ref/default hash-table-ref/default
     'dict-set! hash-table-set!*
     'dict-delete-all! hash-table-delete-all!*
     'dict-intern! hash-table-intern!*
-    'dict-update! hash-table-update*
+    'dict-update! hash-table-update!*
     'dict-update/default! hash-table-update!/default*
     'dict-pop! hash-table-pop!*
-    'dict-map! hash-table-map*
+    'dict-map! hash-table-map!*
     'dict-filter! hash-table-filter*
     'dict-remove! hash-table-remove!*
     'dict-search! hash-table-search* 
     'dict-size hash-table-size
-    'dict-for-each hash-table-foreach*
+    'dict-for-each hash-table-for-each
     'dict-keys hash-table-keys
     'dict-values hash-table-values
     'dict-entries hash-table-entries

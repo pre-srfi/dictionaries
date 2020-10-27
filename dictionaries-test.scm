@@ -1,32 +1,45 @@
 (import (scheme base)
-        (srfi 1)
-        (dictionaries))
+        (scheme case-lambda)
+        (srfi 1))
 
 (cond-expand
-  ((or srfi-64 kawa) 
-    (import (srfi 64)))
+  ((library (srfi 64)) 
+   (import (srfi 64)))
   (chibi 
     (begin
       (import (except (chibi test) test-equal))
       (define-syntax test-equal
         (syntax-rules ()
-          ((_ args ...) (test args ...))))
-      ))
+          ((_ args ...) (test args ...))))))
   (else (error "No testing framework")))
 
+; use include instead of import
+; so that registering is done in isolated way
+(include "indexes.scm")
+(include "internals.scm")
+(include "externals.scm")
+
+(define (clear-registry!)
+  (set! registry '()))
+
 (cond-expand
-  ((or srfi-125 chibi)
+  (kawa (import (srfi 69 basic-hash-tables)))
+  ((library (srfi 125))
    (import (srfi 125)))
-  (kawa
-    (import (srfi 69 basic-hash-tables)))
-  (srfi-69
-    (import (srfi 69)))
+  ((library (srfi 69))
+   (import (srfi 69)))
+  (else))
+
+(cond-expand
+  ((library (srfi 126))
+   (import (srfi 126)))
   (else))
 
 (define (do-test alist->dict)
 
   (test-group
     "dictionary?"
+    (test-assert (not (dictionary? 'foo)))
     (test-assert (dictionary? (alist->dict '())))
     (test-assert (dictionary? (alist->dict '((a . b))))))
 
@@ -75,7 +88,7 @@
 
   (test-group
     "dict-replace!"
-    (define d (dict-replace! '((a . b) (c . d)) 'a 'b2))
+    (define d (dict-replace! (alist->dict '((a . b) (c . d))) 'a 'b2))
     (test-equal 'b2 (dict-ref d 'a))
     (test-equal 'd (dict-ref d 'c)))
 
@@ -185,7 +198,7 @@
     (let ()
      (define-values 
        (dict value)
-       (dict-search!  '((a . b)) 'c
+       (dict-search! (alist->dict '((a . b))) 'c
               (lambda (insert ignore)
                 (ignore 'foo))
               (lambda args
@@ -362,10 +375,20 @@
 
 (test-group 
   "alist"
+  (include "alist-impl.scm")
+  (clear-registry!)
+  (register-alist!)
   (do-test (lambda (alist) alist)))
 
 (test-group
   "plist"
+  ; empty list isn't valid plist dictionary, thus alist impl also has to be
+  ; added just for this edge case
+  (include "alist-impl.scm")
+  (include "plist-impl.scm")
+  (clear-registry!)
+  (register-plist!)
+  (register-alist!)
   (do-test 
     (lambda (alist) 
       (apply append 
@@ -374,17 +397,50 @@
                   alist)))))
 
 (cond-expand
-  ((or srfi-69 srfi-125 chibi kawa)
-   (begin
-     (test-group
-       "srfi-69"
-       (do-test (lambda (alist) 
-                  (define table (make-hash-table equal?))
-                  (for-each
-                    (lambda (pair)
-                      (hash-table-set! table (car pair) (cdr pair)))
-                    alist)
-                  table)))))
-  (else))
+  ((or kawa
+       (library (srfi 69))
+       (library (srfi 125)))
+   (test-group
+     "srfi-69"
+     (include "srfi-69-impl.scm")
+     (clear-registry!)
+     (register-srfi-69!)
+     (do-test (lambda (alist) 
+                (define table (make-hash-table equal?))
+                (for-each
+                  (lambda (pair)
+                    (hash-table-set! table (car pair) (cdr pair)))
+                  alist)
+                table)))))
+
+(cond-expand
+  ((library (srfi 125))
+   (test-group
+     "srfi-125"
+     (include "srfi-125-impl.scm")
+     (clear-registry!)
+     (register-srfi-125!)
+     (do-test (lambda (alist) 
+                (define table (make-hash-table equal?))
+                (for-each
+                  (lambda (pair)
+                    (hash-table-set! table (car pair) (cdr pair)))
+                  alist)
+                table)))))
+
+(cond-expand
+  ((library (srfi 126))
+   (test-group
+     "srfi-126 (r6rs)"
+     (include "srfi-126-impl.scm")
+     (clear-registry!)
+     (register-srfi-126!)
+     (do-test (lambda (alist) 
+                (define table (make-eqv-hashtable))
+                (for-each
+                  (lambda (pair)
+                    (hashtable-set! table (car pair) (cdr pair)))
+                  alist)
+                table)))))
 
 (test-end)
