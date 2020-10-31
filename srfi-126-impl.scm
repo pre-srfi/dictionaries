@@ -28,15 +28,8 @@
     (define val (hashtable-intern! table key default))
     (values table val))
   
-  (define (hashtable-update!* table key updater fail success)
-    (define d (cons #f #f))
-    (define val (hashtable-update! table key proc d))
-    (if (eq? d val)
-        (fail)
-        (success d)))
-  
   (define (hashtable-update/default!* table key updater default)
-    (hashtable-update! table key proc default)
+    (hashtable-update! table key updater default)
     table)
 
   (define (hashtable-pop!* table fail)
@@ -92,6 +85,20 @@
   (define (hashtable-map->lset* proc table)
     (hashtable-map->lset table proc))
   
+  (define (hashtable-keys* table)
+    (vector->list (hashtable-keys table)))
+  
+  (define (hashtable-values* table)
+    (vector->list (hashtable-values table)))
+  
+  (define (hashtable-entries* table)
+    (call-with-values
+      (lambda () (hashtable-entries table))
+      (lambda (keys vals)
+        (values
+          (vector->list keys)
+          (vector->list vals)))))
+  
   (register-dictionary!
     'dictionary? hashtable?
     'dict-empty? hashtable-empty?
@@ -101,7 +108,6 @@
     'dict-set! hashtable-set!*
     'dict-delete-all! hashtable-delete-all!*
     'dict-intern! hashtable-intern!*
-    'dict-update! hashtable-update!*
     'dict-update/default! hashtable-update/default!*
     'dict-pop! hashtable-pop!*
     'dict-map! hashtable-update-all!*
@@ -110,7 +116,7 @@
     'dict-search! hashtable-search*
     'dict-size hashtable-size
     'dict-for-each hashtable-for-each*
-    'dict-keys hashtable-keys
-    'dict-values hashtable-values
-    'dict-entries hashtable-entry-lists
+    'dict-keys hashtable-keys*
+    'dict-values hashtable-values*
+    'dict-entries hashtable-entries*
     'dict-map->list hashtable-map->lset*))

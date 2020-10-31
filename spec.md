@@ -361,17 +361,28 @@ The sample implementation of this SRFI can be found in its repository.
 The following list of dependencies is designed to ease registering
 new dictionary types that may not have complete dictionary APIs:
 
+
+ * `dict-empty?` depends on `dict-size`
  * `dict-contains?` depends on `dict-ref`
+ * `dict-ref` depends on `dict-search!`
  * `dict-ref/default` depends on `dict-ref`
- * `dict-adjoin` depends on `dict-search!`
+ * `dict-set!` depends on `dict-search!`
+ * `dict-adjoin!` depends on `dict-search!`
  * `dict-delete!` depends on `dict-delete-all!`
- * `dict-update/default` depends on `dict-update`
- * `dict-pop` depends on `dict-delete!` and `dict-empty?`
+ * `dict-delete-all!` depends on `dict-search!`
+ * `dict-replace!` depends on `dict-search!`
+ * `dict-intern!` depends on `dict-search!`
+ * `dict-update!` depends on `dict-search!`
+ * `dict-update/default!` depends on `dict-update!`
+ * `dict-pop!` depends on `dict-for-each`, `dict-delete!` and `dict-empty?`
  * `dict-remove!` depends on `dict-filter!`
  * `dict-count` depends on `dict-fold`
+ * `dict-any` depends on `dict-for-each`
+ * `dict-every` depends on `dict-for-each`
  * `dict-keys` depends on `dict-fold`
  * `dict-values` depends on `dict-fold`
  * `dict-entries` depends on `dict-fold`
+ * `dict-fold` depends on `dict-for-each`
  * `dict-map->list` depends on `dict-fold`
  * `dict->alist` depends on `dict-map->list`
 

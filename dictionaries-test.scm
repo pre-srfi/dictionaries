@@ -3,26 +3,6 @@
         (srfi 1))
 
 (cond-expand
-  ((library (srfi 64)) 
-   (import (srfi 64)))
-  (chibi 
-    (begin
-      (import (except (chibi test) test-equal))
-      (define-syntax test-equal
-        (syntax-rules ()
-          ((_ args ...) (test args ...))))))
-  (else (error "No testing framework")))
-
-; use include instead of import
-; so that registering is done in isolated way
-(include "indexes.scm")
-(include "internals.scm")
-(include "externals.scm")
-
-(define (clear-registry!)
-  (set! registry '()))
-
-(cond-expand
   (kawa (import (srfi 69 basic-hash-tables)))
   ((library (srfi 125))
    (import (srfi 125)))
@@ -34,6 +14,29 @@
   ((library (srfi 126))
    (import (srfi 126)))
   (else))
+
+(cond-expand
+  ((library (srfi 64)) 
+   (import (srfi 64)))
+  (chibi 
+    (import (except (chibi test) test-equal)))
+  (else (error "No testing framework")))
+
+(cond-expand
+  (chibi
+    (define-syntax test-equal
+        (syntax-rules ()
+          ((_ args ...) (test args ...)))))
+  (else))
+
+; use include instead of import
+; so that registering is done in isolated way
+(include "indexes.scm")
+(include "internals.scm")
+(include "externals.scm")
+
+(define (clear-registry!)
+  (set! registry '()))
 
 (define (do-test alist->dict)
 
@@ -397,8 +400,7 @@
                   alist)))))
 
 (cond-expand
-  ((or kawa
-       (library (srfi 69))
+  ((or (library (srfi 69))
        (library (srfi 125)))
    (test-group
      "srfi-69"

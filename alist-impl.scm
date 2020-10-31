@@ -18,6 +18,33 @@
       (lambda (e)
         (pred (car e) (cdr e))) 
       alist))
+  
+  (define (alist-delete key alist)
+    ;; find the tail of alist that will be kept
+    ;; ie rest entries after the last entry with matched key
+    (define kept-tail
+      (let loop ((tail alist)
+                 (lst alist))
+      (cond
+        ((null? lst) tail)
+        (else 
+          (if (equal? key (caar lst))
+              (loop (cdr lst) (cdr lst))
+              (loop tail (cdr lst)))))))
+    ;; if tail == alist; just return,
+    ;; else filter elements before the tail, and append the tail
+    (if (eq? alist kept-tail)
+        alist
+        (let loop ((lst alist)
+                   (result/reversed '()))
+          (if (eq? lst kept-tail)
+              (append (reverse result/reversed) kept-tail)
+              (let* ((entry (car lst))
+                     (keep? (not (equal? key (car entry))))
+                     (result/reversed* (if keep? 
+                                           (cons entry result/reversed)
+                                           result/reversed)))
+                (loop (cdr lst) result/reversed*))))))
 
   (define (alist-search! alist key failure success)
     (define (handle-success pair)
