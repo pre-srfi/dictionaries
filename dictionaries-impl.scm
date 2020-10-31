@@ -19,17 +19,15 @@
   (else))
 
 (cond-expand
-  ((and (library (srfi 125))
-        (not (library (srfi 69))))
+  ((library (srfi 125))
    (let ()
     (include "srfi-125-impl.scm")
     (register-srfi-125!)))
   (else))
 
 (cond-expand
-  ((or kawa
-       (and (library (srfi 69))
-            (not (library (srfi 125)))))
+  ((and (library (srfi 69))
+        (not (library (srfi 125))))
    (let ()
     (include "srfi-69-impl.scm")
     (register-srfi-69!)))
