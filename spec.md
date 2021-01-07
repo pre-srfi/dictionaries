@@ -225,7 +225,10 @@ The behaviors of the continuations are as follows
  *  Invoking `(`*update new-key new-value obj*`)` returns a dictionary that
     contains all the associations of *dictionary*,
     except for the association whose key is the same as *key*,
-    which is replaced or hidden by a new association that maps *new-key* to *new-value*.
+    which is replaced or hidden by a new association
+    that maps *new-key* to *new-value*.
+    It is an error if *key* and *new-key* are not the same
+    in the sense of the dictionary's equality predicate.
 
  *  Invoking `(`*remove obj*`)` returns a dictionary that
     contains all the associations of *dictionary*,
