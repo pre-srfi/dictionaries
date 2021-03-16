@@ -112,7 +112,7 @@ If a key to be added already exists in *dictionary*, the new value prevails.
 `(dict-adjoin! `dictionary obj ...`)`
 
 Returns a dictionary that contains all the associations of *dictionary*
-plus those spsecified by *objs*, which alternate between keys and values.
+plus those sp8ecified by *objs*, which alternate between keys and values.
 If a key to be added already exists in *dictionary*, the old value prevails.
 
 `(dict-delete! `*dictionary key* ...`)`
