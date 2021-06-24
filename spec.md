@@ -248,7 +248,7 @@ invokes *updater* on it, and sets the value of *key* to be
 the result of calling *updater* as if by `dict-set`,
 but may do so more efficiently.  Returns the updated dictionary.
 
-`(dict-pop! `*dictionary* [*failure*]`)`
+`(dict-pop! `*dictionary*`)`
 
 Chooses an  association from *dictionary* and returns three values:
 a dictionary that contains all associations of *dictionary* except the chosen one,
@@ -257,8 +257,7 @@ If the dictionary is ordered, the first association is chosen;
 otherwise the chosen association is arbitrary.
 
 If dictionary contains no associations and *failure* is supplied,
-then the thunk *failure* is invoked and its values returned.
-Otherwise, it is an error.
+it is an error.
 
 ```
 (dict-pop! dict) => # 3 values
@@ -377,26 +376,32 @@ that *pred* returned true as an an exact integer.
 `(dict-any `*pred dictionary*`)`
 
 Passes each association of *dictionary* as two arguments to *pred*
-and returns the value of the first call to *pred* that returns true.
+and returns the value of the first call to *pred* that returns true,
+after which no further calls are made.
 If the dictionary type is inherently ordered, associations are processed in the
 inherent order; otherwise in an arbitrary order.
 If all calls return false, `dict-any` returns false.
 
 ```
-FIXME
+(define (both-even? k v) (and (even? k) (even? v))
+(dict-any both-even? '((2 . 4) (3 . 5))) => #t
+(dict-any both-even? '((1 . 2) (3 . 4))) => #f
 ```
 
 `(dict-every `*pred dictionary*`)`
 
 Passes each association of *dictionary* as two arguments to *pred*
-and returns `#f` after the first call to *pred* that returns false.
+and returns `#f` after the first call to *pred* that returns false
+after which no further calls are made.
 If the dictionary type is inherently ordered, associations are processed in the
 inherent order; otherwise in an arbitrary order.
 If all calls return true, `dict-any` returns the value of the last call,
 or `#t` if no calls are made.
 
 ```
-FIXME
+(define (some-even? k v) (or (even? k) (even? v))
+(dict-every some-even? '((2 . 3) (3 . 4))) => #t
+(dict-every some-even? '((1 . 3) (3 . 4))) => #f
 ```
 
 `(dict-keys `*dictionary*`)`
@@ -440,7 +445,7 @@ Returns the result of the last invocation,
 or *knil* if there was no invocation.
 
 ```
-FIXME
+(dict-fold + 0 '((1 . 2) (3 . 4))) => 10
 ```
 
 `(dict-map->list `*proc dictionary*`)`
@@ -478,7 +483,7 @@ of the procedures defined in this SRFI (other than
 `register-dictionary!` itself), and a *proc* argument
 is the specific procedure implementing it for this type.
 These procedures only need to handle the full argument list
-when defining `dict-ref`, `dict-update!`, and `dict-pop!`, as the
+when defining `dict-ref` and `dict-update!`, as the
 defaults have already been supplied by the framework.
 
 Arguments for the six procedures `dictionary?`, `dict-size`,
