@@ -5,10 +5,17 @@
           (srfi 1))
   
   (cond-expand
-    ((and srfi-69 (not srfi-125)) (import (srfi 69)))
-    (srfi-125 (import (srfi 125)))
-    (chibi (import (srfi 125)))
-    (kawa (import (srfi 69 basic-hash-tables))))
+    (kawa (import (srfi 69 basic-hash-tables)))
+    ((library (srfi 69)) (import (srfi 69))) 
+    (else))
+  
+  (cond-expand
+    ((library (srfi 125)) (import (srfi 125))) 
+    (else))
+  
+  (cond-expand
+    ((library (srfi 126)) (import (srfi 126)))
+    (else))
   
   (export 
     

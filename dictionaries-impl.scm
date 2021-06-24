@@ -12,9 +12,23 @@
  (register-plist!)) 
 
 (cond-expand
-  ((or srfi-69 srfi-125 chibi kawa)
-   (begin
-     (let ()
-      (include "srfi-69-impl.scm")
-      (register-srfi-69!))))
+  ((library (srfi 126))
+   (let ()
+    (include "srfi-126-impl.scm")
+    (register-srfi-126!)))
+  (else))
+
+(cond-expand
+  ((library (srfi 125))
+   (let ()
+    (include "srfi-125-impl.scm")
+    (register-srfi-125!)))
+  (else))
+
+(cond-expand
+  ((and (library (srfi 69))
+        (not (library (srfi 125))))
+   (let ()
+    (include "srfi-69-impl.scm")
+    (register-srfi-69!)))
   (else))
