@@ -158,7 +158,7 @@
     "dict-pop!"
     (define-values
       (new-dict key value)
-      (dict-pop! (alist->dict '((a . b) (c . d))) error))
+      (dict-pop! (alist->dict '((a . b) (c . d)))))
     (test-assert
       (or 
         (and (equal? (dict->alist new-dict) '((c . d)))

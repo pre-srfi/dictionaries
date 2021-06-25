@@ -115,7 +115,7 @@
          (lambda () default)
          (lambda (x) x)))
 
-(define (idict-pop! vec dictionary failure)
+(define (idict-pop! vec dictionary)
   (define (do-pop)
     (call/cc
       (lambda (cont)
@@ -127,7 +127,7 @@
                dictionary))))
   (define empty? (dcall dempty? vec dictionary))
   (if empty?
-      (failure)
+      (error "popped empty dictionary")
       (do-pop)))
 
 (define (idict-map! vec proc dictionary)

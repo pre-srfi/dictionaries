@@ -109,15 +109,8 @@
 (define (dict-update/default! dictionary key updater default)
   (dispatch dupdate/default! dictionary key updater default))
 
-(define dict-pop!
-  (case-lambda
-    ((dictionary)
-     (dict-pop!* dictionary error))
-    ((dictionary failure)
-     (dict-pop!* dictionary failure))))
-
-(define (dict-pop!* dictionary failure)
-  (dispatch dpop! dictionary failure))
+(define (dict-pop! dictionary)
+  (dispatch dpop! dictionary))
 
 (define (dict-map! proc dictionary)
   (proc-dispatch dmap! dictionary proc dictionary))
