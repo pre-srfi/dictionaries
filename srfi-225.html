@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>SRFI 225: Dictionaries</title>
+    <link href="/favicon.png" rel="icon" sizes="192x192" type="image/png">
+    <link rel="stylesheet" href="https://srfi.schemers.org/srfi.css" type="text/css">
+    <meta name="viewport" content="width=device-width, initial-scale=1"></head>
+  <body>
+    <h1><a href="https://srfi.schemers.org/"><img class="srfi-logo" src="https://srfi.schemers.org/srfi-logo.svg" alt="SRFI surfboard logo" /></a>225: Dictionaries</h1>
+
+<p>by John Cowan (spec) and Arvydas Silanskas (implementation)</p>
+
+<h2 id="status">Status</h2>
+
+<h2 id="abstract">Abstract</h2>
+
+The procedures of this SRFI allow callers to
+manipulate an object that maps keys to values
+without the caller needing to know exactly what the type
+of the object is.  Such an object is called a *dictionary* in this SRFI.
+
+<h2 id="issues">Issues</h2>
+
+None at present.
+
+<h2 id="rationale">Rationale</h2>
+
+<p>Until recently there was only one universally available mechanism for managing key-value pairs: alists. Most Schemes also support hash tables, but until R6RS there was no standard interface to them, and many implementations do not provide that interface.</p>
+<p>Now, however, the number of such mechanisms is growing. In addition to both R6RS and R7RS hash tables, there are persistent ordered and hashed mappings from SRFI 146 and ordered key-value stores (often on a disk or a remote machine) from SRFI 167.</p>
+<p>It’s inconvenient for users if SRFIs or other libraries have to insist on accepting only a specific type of dictionary. This SRFI exposes a number of accessors, mutators, and other procedures that can be called on any dictionary, provided that its type has been registered with an implementation of this SRFI.</p>
+<p>This in turn requires that the dictionary type provides a predicate that can recognize it, plus at least these primitive operations: determine a dictionary’s current size; reference, update, or insert an element of the dictionary depending on its current contents; map over all the elements with a function mapping the old value to a new one; filter the elements based on their keys or values; and process all the elements using a side-effecting procedure.</p>
+<p>By using the procedures of this SRFI, a procedure can take a dictionary as an argument and make flexible use of it without knowing its exact type.</p>
+<p>Note that dictionaries must still be constructed using type-specific constructors, as the required and optional arguments differ in each case.</p>
+<h2 id="specification">Specification</h2>
+<p>In order for the system to know that an object is a dictionary, a predicate must be defined that recognizes that type of dictionary. Then the predicate must be registered along with procedures that know how to manipulate the dictionary. At least the six basic dictionary procedures (see below) must be registered, but more may be provided at registration time.</p>
+<p>We call a specific key-value pair an <em>association</em>. This is why an alist, or association list, is called that; it is a list of associations represented as pairs.</p>
+<p>When a key argument is said to be the same as some key of the dictionary, it means that they are the same in the sense of the dictionary’s equality predicate. It is assumed that no dictionary contains two keys that are the same in this sense.</p>
+<p>Dictionaries are said in this SRFI to be <em>similar</em> if they are of the same type and have the same <a href="http://srfi.schemers.org/srfi-128/srfi-128.html">SRFI 128</a> comparator.</p>
+<h3 id="lists-as-dictionaries">Lists as dictionaries</h3>
+<p>The exact set of pre-registered dictionaries depends on their availability in a given implementation. However, lists are supported as dictionaries using the specification in this section. If two keys are the same (in the sense of the specified equality predicate), then all but the first are treated as if they did not exist.</p>
+<p>If the car of a list is a symbol, then the list is assumed to be a property list, alternating symbol keys with values. Mutation operations actually mutate the property list whenever possible. The equality predicate of this type of dictionary is <code>eq?</code>.</p>
+<p>If a list is empty, or its car is a pair, then the list is assumed to be an alist. New values are added to the beginning of an alist and the new alist is returned; deletion does not mutate the alist, but returns an alist that may or may not share storage with the original alist. If an association has been updated, then both the new and the old association may be processed by the whole-dictionary procedures. The equality predicate of this type of dictionary is <code>equal?</code>. The examples in this SRFI use alists.</p>
+<p>In all other cases, lists are not treated as dictionaries unless an appropriate dictionary type has been registered.</p>
+<h3 id="predicates">Predicates</h3>
+<p><code>(dictionary?</code>&nbsp;<em>obj</em><code>)</code></p>
+<p>Returns <code>#t</code> if <em>obj</em> answers <code>#t</code> to some registered predicate, and <code>#f</code> otherwise.</p>
+<pre><code>(define dict &#39;((1 . 2) (3 . 4) (5 . 6)))
+(dictionary? dict) =&gt; #t</code></pre>
+<p><code>(dict-empty?</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns <code>#t</code> if <em>dictionary</em> contains no associations and <code>#f</code> if it does contain associations.</p>
+<pre><code>(dict-empty? &#39;()) =&gt; #t
+(dict-empty? dict) =&gt; #f</code></pre>
+<p><code>(dict-contains?</code>&nbsp;<em>dictionary key</em><code>)</code></p>
+<pre><code>(dict-contains? dict 1) =&gt; #t
+(dict-contains? dict 2) =&gt; #f</code></pre>
+<p>Returns <code>#t</code>if one of the keys of <em>dictionary</em> is the same as <em>key</em> and <code>#f</code> otherwise.</p>
+<h3 id="lookup">Lookup</h3>
+<p><code>(dict-ref</code>&nbsp;<em>dictionary key</em> [<em>failure</em> [<em>success</em>] ]<code>)</code></p>
+<p>If <em>key</em> is the same as some key of <em>dictionary</em>, then invokes <em>success</em> on the corresponding value and returns its result. If <em>key</em> is not a key of <em>dictionary</em>, then invokes the thunk <em>failure</em> and returns its result. The default value of <em>failure</em> signals an error; the default value of <em>success</em> is the identity procedure.</p>
+<pre><code>(dict-ref dict 1 (lambda () &#39;() list) =&gt; (1)  ; success wraps value in a list
+(dict-ref dict 2 (lambda () &#39;() list)) =&gt; ()  ; failure returns empty list</code></pre>
+<p><code>(dict-ref/default</code>&nbsp;<em>dictionary key default</em><code>)</code></p>
+<p>If <em>key</em> is the same as some key of <em>dictionary</em> then returns the corresponding value. If not, then returns <em>default</em>.</p>
+<pre><code>(dict-ref/default dict 1 #f) =&gt; 1
+(dict-ref/default dict 1 #f) =&gt; #f</code></pre>
+<h3 id="mutation">Mutation</h3>
+<p>All these procedures are linear-update: that is, they may return a new dictionary object (which may or may not share storage with the <em>dictionary</em> argument), or the same dictionary object, mutated. In either case, it is an error to access the dictionary later through any other reference to it, as that reference may have been invalidated.</p>
+<p><code>(dict-set!</code>&nbsp;<em>dictionary obj</em> …<code>)</code></p>
+<p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the new value prevails.</p>
+<pre><code>; alists are changed non-destructively
+(dict-set! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
+(dict-set! dict 3 5) =&gt; ((1 . 2) (3 . 5) (5 . 6) ; may share last alist entry</code></pre>
+<p><code>(dict-adjoin!</code>dictionary obj …<code>)</code></p>
+<p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the old value prevails.</p>
+<pre><code>; alists are changed non-destructively
+(dict-adjoin! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
+(dict-adjoin! dict 3 5) =&gt; ((1 . 2) (3 . 5) (5 . 6) ; may share last alist entry</code></pre>
+<p><code>(dict-delete!</code>&nbsp;<em>dictionary key</em> …<code>)</code></p>
+<p>Returns a dictionary that contains all the associations of <em>dictionary</em> except those whose keys are the same as one of the <em>keys</em>.</p>
+<pre><code>; alists are changed non-destructively
+(dict-delete! dict 1 3) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
+(dict-delete! dict 3 5) =&gt; ((1 . 2) (3 . 4) (5 . 6) ; may share whole alist</code></pre>
+<p><code>(dict-delete-all!</code>&nbsp;<em>dictionary keylist</em><code>)</code></p>
+<p>Returns a dictionary with all the associations of <em>dictionary</em> except those whose keys are the same as some member of <em>keylist</em>.</p>
+<pre><code>(dict-delete-all! dict &#39;(1 3)) =&gt; ((5 . 6))</code></pre>
+<p><code>(dict-replace!</code>&nbsp;<em>dictionary key value</em><code>)</code></p>
+<p>Returns a dictionary that contains all the associations of <em>dictionary</em> except as follows: If <em>key</em> is the same as a key of <em>dictionary</em>, then the association for that key is omitted and replaced by the association defined by the pair <em>key</em> and <em>value</em>. If there is no such key in <em>dictionary</em>, then dictionary is returned unchanged.</p>
+<pre><code>(dict-replace! dict 1 3) =&gt; ((1 . 3) (3 . 4) (5 . 6))
+(dict-replace! dict 2 3) =&gt; ((1 . 2) (3 . 4) (5 . 6))</code></pre>
+<p><code>(dict-intern!</code>dictionary key failure<code>)</code></p>
+<p>Extracts the value associated with the key in <em>dictionary</em> that is the same as <em>key</em>, and returns two values, <em>dictionary</em> and the value. If <em>key</em> is not the same as any key in <em>dictionary</em>, <em>failure</em> is invoked on no arguments.</p>
+<p>The procedure then returns two values, a dictionary that contains all the associations of <em>dictionary</em> and in addition a new association that maps <em>key</em> to the result of invoking <em>failure</em>, and the result of invoking <em>failure</em>.</p>
+<pre><code>(dict-intern! dict 1 (lambda () #f)) =&gt; ; 2 values
+  ((1 . 2) (3 . 4) (5 . 6))
+  3
+(dict-intern! dict 2 (lambda () #f)) =&gt; ; 2 values
+  ((2 . #f) (1 . 2) (3 . 4) (5 . 6))
+  #f</code></pre>
+<p><code>(dict-update!</code>&nbsp;<em>dictionary key updater</em> [<em>failure</em> [<em>success</em>] ]<code>)</code></p>
+<p>Retrieves the value of <em>key</em> as if by <code>dict-ref</code>, invokes <em>updater</em> on it, and sets the value of <em>key</em> to be the result of calling <em>updater</em> as if by <code>dict-set</code>, but may do so more efficiently. Returns the updated dictionary. The default value of <em>failure</em> signals an error; the default value of <em>success</em> is the identity procedure.</p>
+<p><code>(dict-update/default!</code>&nbsp;<em>dictionary key updater default</em><code>)</code></p>
+<p>Retrieves the value of <em>key</em> as if by <code>dict-ref/default</code>, invokes <em>updater</em> on it, and sets the value of <em>key</em> to be the result of calling <em>updater</em> as if by <code>dict-set</code>, but may do so more efficiently. Returns the updated dictionary.</p>
+<p><code>(dict-pop!</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Chooses an association from <em>dictionary</em> and returns three values: a dictionary that contains all associations of <em>dictionary</em> except the chosen one, and the key and the value of the chosen association. If the dictionary is ordered, the first association is chosen; otherwise the chosen association is arbitrary.</p>
+<p>If dictionary contains no associations and <em>failure</em> is supplied, it is an error.</p>
+<pre><code>(dict-pop! dict) =&gt; # 3 values
+  ((3 . 4) (5 . 6))
+  1
+  2</code></pre>
+<p><code>(dict-map!</code>&nbsp;<em>proc dictionary</em><code>)</code></p>
+<p>Returns a dictionary similar to <em>dictionary</em> that maps each key of <em>dictionary</em> to the value that results from invoking <em>proc</em> on the corresponding key and value of <em>dictionary</em>.</p>
+<pre><code>(dict-map! (lambda (k v) (cons v k)) dict) =&gt; ((2 . 1) (4 . 3) (6 . 5))</code></pre>
+<p><code>(dict-filter!</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
+<p>Returns a dictionary similar to <em>dictionary</em> that contains just the associations of <em>dictionary</em> that satisfy <em>pred</em> when it is invoked on the key and value of the association.</p>
+<pre><code>(dict-filter (lambda (x) (= x 1)) dict) =&gt; ((1 . 2))</code></pre>
+<p><code>(dict-remove!</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
+<p>Returns a dictionary that contains all the associations of <em>dictionary</em> except those that satisfy <em>pred</em> when called on the key and value.</p>
+<pre><code>(dict-remove (lambda (x) (= x 1)) dict) =&gt; ((3 . 4) (5 . 6))</code></pre>
+<p><code>(dict-search!</code>&nbsp;<em>dictionary key failure success</em><code>)</code></p>
+<p>This procedure is a workhorse for dictionary lookup, insert, and delete. The dictionary <em>dictionary</em> is searched for an association whose key is the same as <em>key</em> in the sense of <em>dictionary</em>’s comparator. If one is not found, then the <em>failure</em> procedure is tail-called with two continuation arguments, <em>insert</em> and <em>ignore</em>, and is expected to tail-call one of them.</p>
+<p>However, if such an association is found, then the <em>success</em> procedure is tail-called with the matching key of <em>dictionary</em>, the associated value, and two continuation arguments, <em>update</em> and <em>remove</em>, and is expected to tail-call one of them.</p>
+<p>It is an error if the continuation arguments are invoked other than in tail position in the <em>failure</em> and <em>success</em> procedures. It is also an error if the <em>failure</em> and <em>success</em> procedures return to their implicit continuation without invoking one of their arguments.</p>
+<p>The behaviors of the continuations are as follows (where <em>obj</em> is any Scheme object):</p>
+<ul>
+<li><p>Invoking <code>(</code>&nbsp;<em>insert value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, and in addition a new association that maps <em>key</em> to <em>value</em>.</p></li>
+<li><p>Invoking <code>(</code>&nbsp;<em>ignore obj</em><code>)</code> has no effects and returns <em>dictionary</em> unchanged.</p></li>
+<li><p>Invoking <code>(</code>&nbsp;<em>update new-key new-value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association whose key is the same as <em>key</em>, which is replaced or hidden by a new association that maps <em>new-key</em> to <em>new-value</em>. It is an error if <em>key</em> and <em>new-key</em> are not the same in the sense of the dictionary’s equality predicate.</p></li>
+<li><p>Invoking <code>(</code>&nbsp;<em>remove obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association with key key.</p></li>
+</ul>
+<p>In all cases, <em>obj</em> is returned as a second value.</p>
+<h3 id="the-whole-dictionary">The whole dictionary</h3>
+<p><code>(dict-size</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns an exact integer representing the number of associations in <em>dictionary</em>.</p>
+<pre><code>(dict-size dict) =&gt; 0</code></pre>
+<p><code>(dict-for-each</code>&nbsp;<em>proc dictionary</em><code>)</code></p>
+<p>Invokes <em>proc</em> on each key of <em>dictionary</em> and its corresponding value in that order. This procedure is used for doing operations on the whole dictionary. If the dictionary type is inherently ordered, associations are processed in the inherent order; otherwise in an arbitrary order. Returns an unspecified value.</p>
+<pre><code>(dict-for-each write dict) =&gt; unspecified
+  ; writes &quot;135&quot; to current output</code></pre>
+<p><code>(dict-count</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
+<p>Passes each association of dictionary as two arguments to <em>pred</em> and returns the number of times that <em>pred</em> returned true as an an exact integer.</p>
+<pre><code>(dict-count dict (lambda (k v) (even? k) =&gt; 0</code></pre>
+<p><code>(dict-any</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
+<p>Passes each association of <em>dictionary</em> as two arguments to <em>pred</em> and returns the value of the first call to <em>pred</em> that returns true, after which no further calls are made. If the dictionary type is inherently ordered, associations are processed in the inherent order; otherwise in an arbitrary order. If all calls return false, <code>dict-any</code> returns false.</p>
+<pre><code>(define (both-even? k v) (and (even? k) (even? v))
+(dict-any both-even? &#39;((2 . 4) (3 . 5))) =&gt; #t
+(dict-any both-even? &#39;((1 . 2) (3 . 4))) =&gt; #f</code></pre>
+<p><code>(dict-every</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
+<p>Passes each association of <em>dictionary</em> as two arguments to <em>pred</em> and returns <code>#f</code> after the first call to <em>pred</em> that returns false after which no further calls are made. If the dictionary type is inherently ordered, associations are processed in the inherent order; otherwise in an arbitrary order. If all calls return true, <code>dict-any</code> returns the value of the last call, or <code>#t</code> if no calls are made.</p>
+<pre><code>(define (some-even? k v) (or (even? k) (even? v))
+(dict-every some-even? &#39;((2 . 3) (3 . 4))) =&gt; #t
+(dict-every some-even? &#39;((1 . 3) (3 . 4))) =&gt; #f</code></pre>
+<p><code>(dict-keys</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns a list of the keys of <em>dictionary</em>. If the dictionary type is inherently ordered, associations are processed in the inherent order; otherwise in an arbitrary order. The order may change when new elements are added to <em>dictionary</em>.</p>
+<pre><code>(dict-keys dict) =&gt; (1 3 5)</code></pre>
+<p><code>(dict-values</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns a list of the values of <em>dictionary</em>. The results returned by <code>dict-keys</code> and <code>dict-values</code> are ordered consistently.</p>
+<pre><code>(dict-values dict) =&gt; (2 4 6)</code></pre>
+<p><code>(dict-entries</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns two values, the result of calling <code>dict-keys</code> and the result of calling <code>dict-values</code> on <em>dictionary</em>.</p>
+<pre><code>(dict-entries dict) =&gt; ; 2 values
+  (1 3 5)
+  (2 4 6)</code></pre>
+<p><code>(dict-fold</code>&nbsp;<em>proc knil dictionary</em><code>)</code></p>
+<p>Invokes <em>proc</em> on each association of <em>dictionary</em> with three arguments: the key of the association, the value of the association, and an accumulated result of the previous invocation. For the first invocation, <em>knil</em> is used as the third argument. Returns the result of the last invocation, or <em>knil</em> if there was no invocation.</p>
+<pre><code>(dict-fold + 0 &#39;((1 . 2) (3 . 4))) =&gt; 10</code></pre>
+<p><code>(dict-map-&gt;list</code>&nbsp;<em>proc dictionary</em><code>)</code></p>
+<p>Returns a list of values that result from invoking <em>proc</em> on the keys and corresponding values of <em>dictionary</em>.</p>
+<pre><code>(dict-map-&gt;list - dict) =&gt; (-1 -1 -1)</code></pre>
+<p><code>(dict-&gt;alist</code>&nbsp;<em>dictionary</em><code>)</code></p>
+<p>Returns an alist whose keys and values are the keys and values of <em>dictionary</em>.</p>
+<pre><code>; plist to alist
+(dict-&gt;alist &#39;(1 2 3 4 5 6)) =&gt; ((1 . 2) (3 . 4) (5 . 6))</code></pre>
+<h3 id="registering-dictionary-types">Registering dictionary types</h3>
+<p>The following procedure registers new dictionary types. It is an error to register a dictionary type whose instances return <code>#t</code> to any predicate already registered.</p>
+<p><code>(register-dictionary!</code>&nbsp;<em>arg</em> …<code>)</code></p>
+<p>Registers a new dictionary type, providing procedures that allow manipulation of dictionaries of that type. The <em>args</em> are alternately <em>procnames</em> and corresponding <em>procs</em>.</p>
+<p>A <em>procname</em> argument is a symbol which is the same as one of the procedures defined in this SRFI (other than <code>register-dictionary!</code> itself), and a <em>proc</em> argument is the specific procedure implementing it for this type. These procedures only need to handle the full argument list when defining <code>dict-ref</code> and <code>dict-update!</code>, as the defaults have already been supplied by the framework.</p>
+<p>Arguments for the six procedures <code>dictionary?</code>, <code>dict-size</code>, <code>dict-search!</code>, <code>dict-map!</code>, <code>dict-filter!</code>, and <code>dict-for-each</code> are required. The others are optional, but if provided can be more efficient than the versions automatically provided by the implementation of this SRFI.</p>
+
+<h2 id="implementation">Implementation</h2>
+
+<p>The sample implementation is found in the GitHub repository.</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+
+<p>Thanks to the participants on the mailing list.</p>
+
+<h2 id="copyright">Copyright</h2>
+<p>&copy; 2021 John Cowan, Arvydas Silanskas.</p>
+
+<p>
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation files
+  (the "Software"), to deal in the Software without restriction,
+  including without limitation the rights to use, copy, modify, merge,
+  publish, distribute, sublicense, and/or sell copies of the Software,
+  and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:</p>
+
+<p>
+  The above copyright notice and this permission notice (including the
+  next paragraph) shall be included in all copies or substantial
+  portions of the Software.</p>
+<p>
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+  BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+  ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.</p>
+
+  <hr>
+  <address>Editor: <a href="mailto:srfi-editors+at+srfi+dot+schemers+dot+org">Arthur A. Gleckler</a></address></body></html>
