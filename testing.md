@@ -1,5 +1,3 @@
-[Current spec](spec.md).
-
 Running tests:
 
 Kawa
