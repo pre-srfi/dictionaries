@@ -22,7 +22,12 @@ of the object is.  Such an object is called a *dictionary* in this SRFI.
 
 <h2 id="issues">Issues</h2>
 
-None at present.
+<p>1) Consider adding <code>dict-map</code>,
+<code>dict-filter</code>, <code>dict-remove</code>,
+and <code>dict-search<code>.
+Currently they do not exist
+because SRFI 125 doesn't have them, as there is no way to create a hash table
+similar to an existing hash table.</p>
 
 <h2 id="rationale">Rationale</h2>
 
@@ -65,32 +70,31 @@ None at present.
 <blockquote><pre>(dict-ref/default dict 1 #f) =&gt; 1
 (dict-ref/default dict 1 #f) =&gt; #f</code></blockquote>
 <h3 id="mutation">Mutation</h3>
-<p>All these procedures are linear-update: that is, they may return a new dictionary object (which may or may not share storage with the <em>dictionary</em> argument), or the same dictionary object, mutated. In either case, it is an error to access the dictionary later through any other reference to it, as that reference may have been invalidated.</p>
+<p>All these procedures are linear-update: they may return either a new dictionary object (which may or may not share storage with the <em>dictionary</em> argument), or the same dictionary object, mutated. In either case, it is an error to access the dictionary later through any other reference to it, as that reference may have been invalidated.</p>
 <p><code>(dict-set!</code>&nbsp;<em>dictionary obj</em> …<code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the new value prevails.</p>
 <blockquote><pre>; alists are changed non-destructively
 (dict-set! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
-(dict-set! dict 3 5) =&gt; ((1 . 2) (3 . 5) (5 . 6) ; may share last alist entry</code></blockquote>
-<p><code>(dict-adjoin!</code>dictionary obj …<code>)</code></p>
+(dict-set! dict 3 5) =&gt; ((3 . 5) (1 . 2) (3 . 4) (5 . 6)</pre></blockquote>
+<p><code>(dict-adjoin!</code>&nbsp;<em>dictionary obj</em><code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the old value prevails.</p>
 <blockquote><pre>; alists are changed non-destructively
 (dict-adjoin! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
-(dict-adjoin! dict 3 5) =&gt; ((1 . 2) (3 . 5) (5 . 6) ; may share last alist entry</code></blockquote>
+(dict-adjoin! dict 3 5) =&gt; ((1 . 2) (3 . 4) (5 . 6)</code></blockquote>
 <p><code>(dict-delete!</code>&nbsp;<em>dictionary key</em> …<code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> except those whose keys are the same as one of the <em>keys</em>.</p>
 <blockquote><pre>; alists are changed non-destructively
-(dict-delete! dict 1 3) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
-(dict-delete! dict 3 5) =&gt; ((1 . 2) (3 . 4) (5 . 6) ; may share whole alist</code></blockquote>
+(dict-delete! dict 1 3) =&gt; ((5. 6)) ; may share
+(dict-delete! dict 5) =&gt; ((1 . 2) (3 . 4)</code></blockquote>
 <p><code>(dict-delete-all!</code>&nbsp;<em>dictionary keylist</em><code>)</code></p>
 <p>Returns a dictionary with all the associations of <em>dictionary</em> except those whose keys are the same as some member of <em>keylist</em>.</p>
 <blockquote><pre>(dict-delete-all! dict &#39;(1 3)) =&gt; ((5 . 6))</code></blockquote>
 <p><code>(dict-replace!</code>&nbsp;<em>dictionary key value</em><code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> except as follows: If <em>key</em> is the same as a key of <em>dictionary</em>, then the association for that key is omitted and replaced by the association defined by the pair <em>key</em> and <em>value</em>. If there is no such key in <em>dictionary</em>, then dictionary is returned unchanged.</p>
-<blockquote><pre>(dict-replace! dict 1 3) =&gt; ((1 . 3) (3 . 4) (5 . 6))
-(dict-replace! dict 2 3) =&gt; ((1 . 2) (3 . 4) (5 . 6))</code></blockquote>
-<p><code>(dict-intern!</code>dictionary key failure<code>)</code></p>
-<p>Extracts the value associated with the key in <em>dictionary</em> that is the same as <em>key</em>, and returns two values, <em>dictionary</em> and the value. If <em>key</em> is not the same as any key in <em>dictionary</em>, <em>failure</em> is invoked on no arguments.</p>
-<p>The procedure then returns two values, a dictionary that contains all the associations of <em>dictionary</em> and in addition a new association that maps <em>key</em> to the result of invoking <em>failure</em>, and the result of invoking <em>failure</em>.</p>
+<blockquote><pre>(dict-replace! dict 1 3) =&gt; ((1 . 3) (1 . 2) (3 . 4) (5 . 6)) </code></blockquote>
+<p><code>(dict-intern!</code>&nbsp;<em>dictionary key failure</em>)</code></p>
+<p>If there is a key in <em>dictionary</em> that is the same as <em>key</em>, returns two values, <em>dictionary</em> and the value associated with <em>key</em>.
+Otherwise, returns two values, a dictionary that contains all the associations of <em>dictionary</em> and in addition a new association that maps <em>key</em> to the result of invoking <em>failure</em>, and the result of invoking <em>failure</em>.</p>
 <blockquote><pre>(dict-intern! dict 1 (lambda () #f)) =&gt; ; 2 values
   ((1 . 2) (3 . 4) (5 . 6))
   3
@@ -103,7 +107,7 @@ None at present.
 <p>Retrieves the value of <em>key</em> as if by <code>dict-ref/default</code>, invokes <em>updater</em> on it, and sets the value of <em>key</em> to be the result of calling <em>updater</em> as if by <code>dict-set</code>, but may do so more efficiently. Returns the updated dictionary.</p>
 <p><code>(dict-pop!</code>&nbsp;<em>dictionary</em><code>)</code></p>
 <p>Chooses an association from <em>dictionary</em> and returns three values: a dictionary that contains all associations of <em>dictionary</em> except the chosen one, and the key and the value of the chosen association. If the dictionary is ordered, the first association is chosen; otherwise the chosen association is arbitrary.</p>
-<p>If dictionary contains no associations and <em>failure</em> is supplied, it is an error.</p>
+<p>If dictionary contains no associations, it is an error.</p>
 <blockquote><pre>(dict-pop! dict) =&gt; # 3 values
   ((3 . 4) (5 . 6))
   1
@@ -113,10 +117,10 @@ None at present.
 <blockquote><pre>(dict-map! (lambda (k v) (cons v k)) dict) =&gt; ((2 . 1) (4 . 3) (6 . 5))</code></blockquote>
 <p><code>(dict-filter!</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
 <p>Returns a dictionary similar to <em>dictionary</em> that contains just the associations of <em>dictionary</em> that satisfy <em>pred</em> when it is invoked on the key and value of the association.</p>
-<blockquote><pre>(dict-filter (lambda (x) (= x 1)) dict) =&gt; ((1 . 2))</code></blockquote>
+<blockquote><pre>(dict-filter! (lambda (k v) (= k 1)) dict) =&gt; ((1 . 2))</code></blockquote>
 <p><code>(dict-remove!</code>&nbsp;<em>pred dictionary</em><code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> except those that satisfy <em>pred</em> when called on the key and value.</p>
-<blockquote><pre>(dict-remove (lambda (x) (= x 1)) dict) =&gt; ((3 . 4) (5 . 6))</code></blockquote>
+<blockquote><pre>(dict-remove! (lambda (k) (= k 1)) dict) =&gt; ((3 . 4) (5 . 6))</code></blockquote>
 <p><code>(dict-search!</code>&nbsp;<em>dictionary key failure success</em><code>)</code></p>
 <p>This procedure is a workhorse for dictionary lookup, insert, and delete. The dictionary <em>dictionary</em> is searched for an association whose key is the same as <em>key</em> in the sense of <em>dictionary</em>’s comparator. If one is not found, then the <em>failure</em> procedure is tail-called with two continuation arguments, <em>insert</em> and <em>ignore</em>, and is expected to tail-call one of them.</p>
 <p>However, if such an association is found, then the <em>success</em> procedure is tail-called with the matching key of <em>dictionary</em>, the associated value, and two continuation arguments, <em>update</em> and <em>remove</em>, and is expected to tail-call one of them.</p>
@@ -129,6 +133,54 @@ None at present.
 <li><p>Invoking <code>(</code>&nbsp;<em>remove obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association with key key.</p></li>
 </ul>
 <p>In all cases, <em>obj</em> is returned as a second value.</p>
+<p>Here are four examples of <code>dict-search!</code>,
+one for each of the four continuations:
+<blockquote><pre>
+     ;; ignore 
+     (define-values 
+       (dict value)
+       (dict-search! (alist->dict '((a . b))) 'c
+              (lambda (insert ignore)
+                (ignore 'foo))
+              (lambda args
+                (error))))
+     (dict->alist dict)) => ((a . b))
+     value => 'foo
+
+     ;; insert
+     (define-values 
+       (dict value)
+       (dict-search! (alist->dict '((a . b))) 'c
+              (lambda (insert ignore)
+                (insert 'd 'foo))
+              (lambda args
+                (`rror))))
+     (dict-ref dict 'a)) => b
+     (dict-ref dict 'c)) => 'd`
+     value => foo
+
+     ;; update
+     (define-values 
+       (dict value)
+       (dict-search! (alist->dict '((a . b))) 'a
+              (lambda args
+                (error))
+              (lambda (key value update delete)
+                (update 'a2 'b2 'foo))))
+     (dict->alist dict) => ((a2 . b2)
+     value => foo
+
+     ;; delete
+     (define-values 
+       (dict value)
+       (dict-search! (alist->dict '((a . b) (c . d))) 'a
+              (lambda args
+                (error))
+              (lambda (key value update delete)
+                (delete 'foo))))
+     (dict->alist dict)) => ((c . d))
+     value => foo
+</pre></blockquote>
 <h3 id="the-whole-dictionary">The whole dictionary</h3>
 <p><code>(dict-size</code>&nbsp;<em>dictionary</em><code>)</code></p>
 <p>Returns an exact integer representing the number of associations in <em>dictionary</em>.</p>
