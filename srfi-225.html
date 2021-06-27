@@ -73,17 +73,17 @@ similar to an existing hash table.</p>
 <p>All these procedures are linear-update: they may return either a new dictionary object (which may or may not share storage with the <em>dictionary</em> argument), or the same dictionary object, mutated. In either case, it is an error to access the dictionary later through any other reference to it, as that reference may have been invalidated.</p>
 <p><code>(dict-set!</code>&nbsp;<em>dictionary obj</em> …<code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the new value prevails.</p>
-<blockquote><pre>; alists are changed non-destructively
+<blockquote><pre>; new values are prepended
 (dict-set! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
 (dict-set! dict 3 5) =&gt; ((3 . 5) (1 . 2) (3 . 4) (5 . 6)</pre></blockquote>
 <p><code>(dict-adjoin!</code>&nbsp;<em>dictionary obj</em><code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> plus those specified by <em>objs</em>, which alternate between keys and values. If a key to be added already exists in <em>dictionary</em>, the old value prevails.</p>
-<blockquote><pre>; alists are changed non-destructively
+<blockquote><pre>; new values are prepended
 (dict-adjoin! dict 7 8) =&gt; ((7 . 8) (1 . 2) (3 . 4) (5 . 6))
 (dict-adjoin! dict 3 5) =&gt; ((1 . 2) (3 . 4) (5 . 6)</code></blockquote>
 <p><code>(dict-delete!</code>&nbsp;<em>dictionary key</em> …<code>)</code></p>
 <p>Returns a dictionary that contains all the associations of <em>dictionary</em> except those whose keys are the same as one of the <em>keys</em>.</p>
-<blockquote><pre>; alists are changed non-destructively
+<blockquote><pre>; new values are prepended
 (dict-delete! dict 1 3) =&gt; ((5. 6)) ; may share
 (dict-delete! dict 5) =&gt; ((1 . 2) (3 . 4)</code></blockquote>
 <p><code>(dict-delete-all!</code>&nbsp;<em>dictionary keylist</em><code>)</code></p>
@@ -127,10 +127,10 @@ Otherwise, returns two values, a dictionary that contains all the associations o
 <p>It is an error if the continuation arguments are invoked other than in tail position in the <em>failure</em> and <em>success</em> procedures. It is also an error if the <em>failure</em> and <em>success</em> procedures return to their implicit continuation without invoking one of their arguments.</p>
 <p>The behaviors of the continuations are as follows (where <em>obj</em> is any Scheme object):</p>
 <ul>
-<li><p>Invoking <code>(</code>&nbsp;<em>insert value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, and in addition a new association that maps <em>key</em> to <em>value</em>.</p></li>
-<li><p>Invoking <code>(</code>&nbsp;<em>ignore obj</em><code>)</code> has no effects and returns <em>dictionary</em> unchanged.</p></li>
-<li><p>Invoking <code>(</code>&nbsp;<em>update new-key new-value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association whose key is the same as <em>key</em>, which is replaced or hidden by a new association that maps <em>new-key</em> to <em>new-value</em>. It is an error if <em>key</em> and <em>new-key</em> are not the same in the sense of the dictionary’s equality predicate.</p></li>
-<li><p>Invoking <code>(</code>&nbsp;<em>remove obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association with key key.</p></li>
+<li><p>Invoking <code>(</code><em>insert value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, and in addition a new association that maps <em>key</em> to <em>value</em>.</p></li>
+<li><p>Invoking <code>(</code><em>ignore obj</em><code>)</code> has no effects and returns <em>dictionary</em> unchanged.</p></li>
+<li><p>Invoking <code>(</code><em>update new-key new-value obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association whose key is the same as <em>key</em>, which is replaced or hidden by a new association that maps <em>new-key</em> to <em>new-value</em>. It is an error if <em>key</em> and <em>new-key</em> are not the same in the sense of the dictionary’s equality predicate.</p></li>
+<li><p>Invoking <code>(</code><em>remove obj</em><code>)</code> returns a dictionary that contains all the associations of <em>dictionary</em>, except for the association with key key.</p></li>
 </ul>
 <p>In all cases, <em>obj</em> is returned as a second value.</p>
 <p>Here are four examples of <code>dict-search!</code>,
