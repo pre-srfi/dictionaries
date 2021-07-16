@@ -1,9 +1,13 @@
 (import (scheme base)
-        (scheme case-lambda)
-        (srfi 1))
+        (scheme case-lambda))
+
+(cond-expand
+  (guile (import (srfi srfi-1)))
+  (else (import (srfi 1))))
 
 (cond-expand
   (kawa (import (srfi 69 basic-hash-tables)))
+  (guile (import (srfi srfi-69)))
   ((library (srfi 125))
    (import (srfi 125)))
   ((library (srfi 69))
@@ -11,23 +15,19 @@
   (else))
 
 (cond-expand
+  (guile)
   ((library (srfi 126))
    (import (srfi 126)))
   (else))
 
 (cond-expand
-  ((library (srfi 64)) 
-   (import (srfi 64)))
-  (chibi 
-    (import (except (chibi test) test-equal)))
-  (else (error "No testing framework")))
-
-(cond-expand
+  (guile
+   (import (srfi srfi-64)))
   (chibi
-    (define-syntax test-equal
-        (syntax-rules ()
-          ((_ args ...) (test args ...)))))
-  (else))
+   (import (rename (except (chibi test) test-equal)
+                   (test test-equal))))
+  (else
+   (import (srfi 64))))
 
 ; use include instead of import
 ; so that registering is done in isolated way
@@ -205,7 +205,7 @@
               (lambda (insert ignore)
                 (ignore 'foo))
               (lambda args
-                (error))))
+                (error "shouldn't happen"))))
      (test-equal '((a . b)) (dict->alist dict))
      (test-equal value 'foo))
 
@@ -217,7 +217,7 @@
               (lambda (insert ignore)
                 (insert 'd 'foo))
               (lambda args
-                (error))))
+                (error "shouldn't happen"))))
      (test-equal 'b (dict-ref dict 'a))
      (test-equal 'd (dict-ref dict 'c))
      (test-equal value 'foo))
@@ -228,7 +228,7 @@
        (dict value)
        (dict-search! (alist->dict '((a . b))) 'a
               (lambda args
-                (error))
+                (error "shouldn't happen"))
               (lambda (key value update delete)
                 (update 'a2 'b2 'foo))))
      (test-equal '((a2 . b2)) (dict->alist dict))
@@ -240,7 +240,7 @@
        (dict value)
        (dict-search! (alist->dict '((a . b) (c . d))) 'a
               (lambda args
-                (error))
+                (error "shouldn't happen"))
               (lambda (key value update delete)
                 (delete 'foo))))
      (test-equal '((c . d)) (dict->alist dict))
@@ -400,7 +400,8 @@
                   alist)))))
 
 (cond-expand
-  ((or (library (srfi 69))
+  ((or guile
+       (library (srfi 69))
        (library (srfi 125)))
    (test-group
      "srfi-69"
@@ -413,9 +414,11 @@
                   (lambda (pair)
                     (hash-table-set! table (car pair) (cdr pair)))
                   alist)
-                table)))))
+                table))))
+  (else))
 
 (cond-expand
+  (guile)
   ((library (srfi 125))
    (test-group
      "srfi-125"
@@ -428,9 +431,11 @@
                   (lambda (pair)
                     (hash-table-set! table (car pair) (cdr pair)))
                   alist)
-                table)))))
+                table))))
+  (else))
 
 (cond-expand
+  (guile)
   ((library (srfi 126))
    (test-group
      "srfi-126 (r6rs)"
@@ -443,6 +448,7 @@
                   (lambda (pair)
                     (hashtable-set! table (car pair) (cdr pair)))
                   alist)
-                table)))))
+                table))))
+  (else))
 
 (test-end)
