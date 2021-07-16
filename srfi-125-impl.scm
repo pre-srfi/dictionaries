@@ -16,9 +16,9 @@
     (define val (hash-table-intern! table key failure))
     (values table val))
   
-  (define (hash-table-pop!* table fail)
+  (define (hash-table-pop!* table)
     (if (hash-table-empty? table)
-        (fail)
+        (error "popped empty dictionary")
         (call-with-values
           (lambda () (hash-table-pop! table))
           (lambda (key value) (values table key value)))))
