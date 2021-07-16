@@ -32,9 +32,9 @@
     (hashtable-update! table key updater default)
     table)
 
-  (define (hashtable-pop!* table fail)
+  (define (hashtable-pop!* table)
     (if (hashtable-empty? table)
-        (fail)
+        (error "popped empty dictionary")
         (call-with-values
           (lambda () (hashtable-pop! table))
           (lambda (key value) (values table key value)))))
